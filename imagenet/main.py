@@ -78,7 +78,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'multi node data parallel training')
 
 best_acc1 = 0
-
+totoal_batch_size = 1
 
 def main():
     args = parser.parse_args()
@@ -118,6 +118,8 @@ def main():
 def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
     args.gpu = gpu
+    global totoal_batch_size
+    totoal_batch_size = args.batch_size
 
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
@@ -264,7 +266,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
-    batch_time = AverageMeter('Time', ':6.3f', args.batch_size)
+    batch_time = AverageMeter('Time', ':6.3f', totoal_batch_size)
     losses = AverageMeterLoss('Loss', ':.4e')
     # data_time = AverageMeter('Data', ':6.3f')
     # top1 = AverageMeter('Acc@1', ':6.2f')
@@ -310,7 +312,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if i % args.print_freq == 0:
+        if i % args.print_freq == 0 and (args.rank == 0 or args.rank == -1):
             progress.display(i)
 
         # set the steps
@@ -395,7 +397,7 @@ class AverageMeter(object):
         self.throughoutput = self.batch_size / self.val
 
     def __str__(self):
-        fmtstr = '{name} {val' + self.fmt + '} ({throughoutput' + self.fmt + '} images/s) '
+        fmtstr = '{name} {val' + self.fmt + '} (throughoutput: {throughoutput' + self.fmt + '} images/s) '
         return fmtstr.format(**self.__dict__)
 
 
